@@ -1,59 +1,56 @@
-const int alpha = 26;
-const char a = 'a';
-
-struct node{
-    int next[alpha] = {}, link[alpha] = {};
-    int suf = 0;
-    int visited = 0, ans = 0;
-    int bad = 0; // any term is reachable by suf links
-    vector<int> term;
-    node() {
-        fill(next, next + alpha, -1);
-    }
+struct Aho {
+struct node {
+    map <int, int> trie;
+    int e = 0, suf = 0, bad = 0;
 };
+vector <node> mem;
+int get_next_or_create(int nd, int c) {
+    if (mem[nd].trie.find(c) == mem[nd].trie.end()) {
+        mem[nd].trie[c] = mem.size();
+        mem.emplace_back();
 
-vector<node> mem;
-
-int get_next_or_create(int nd, char c) {
-    if (mem[nd].next[c - a] == -1) { mem[nd].next[c - a] = mem.size(); mem.emplace_back(); }
-    return mem[nd].next[c - a];
+    }
+    int v = mem[nd].trie[c];
+    mem[v].e = c;
+    return v;
 }
-
-void build(vector<string> t) {
-    mem.reserve(1e6 + 100);mem.clear();
+Aho (vector <vector <int> > t) {
+    int L = 0;
+    for (auto &e : t) {
+        L += e.size();
+    }
+    mem.reserve(L + 1);
     mem.emplace_back();
-    // 0th element is nullptr, 1st is the root
     for (int j = 0; j < t.size(); ++j) {
         int cur = 0;
-        for (char c : t[j]) cur = get_next_or_create(cur, c);
-        mem[cur].term.push_back(j);
-    }
-    vector<int> bfs_order;
-    queue<int> bfs;
-    {
-        node &root = mem[0];
-        root.suf = 0;
-        for (char c = a; c < a + alpha; ++c) {
-            root.link[c - a] = (root.next[c - a] == -1 ? 0 : root.next[c - a]);
+        for (int c : t[j]) {
+            cur = get_next_or_create(cur, c);
         }
-        bfs.push(0);
+        mem[cur].bad = 1;
     }
-    while (!bfs.empty()) {
-        int cur_idx = bfs.front();
-        bfs.pop();
-        node &cur = mem[cur_idx];
-        cur.bad = cur.term.size() > 0 || mem[cur.suf].bad;
-        bfs_order.push_back(cur_idx);
-        for (char c = a; c < a + alpha; ++c) {
-            int nxt_idx = cur.next[c - a];
-            if (nxt_idx == -1) continue;
-            node &nxt = mem[nxt_idx];
-            nxt.suf = (cur_idx ? mem[cur.suf].link[c - a] : 0);
-            for (char c = a; c < a + alpha; ++c) {
-                nxt.link[c - a] = (nxt.next[c - a] == -1 ? mem[nxt.suf].link[c - a] : nxt.next[c - a]);
+    queue <int> q;
+    q.push(0);
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        mem[u].bad |= mem[mem[u].suf].bad;
+        for (auto [c, v] : mem[u].trie) {
+            if (u == 0) {
+                mem[v].suf = 0;
             }
-            bfs.push(nxt_idx);
+            else {
+                int go = mem[u].suf;
+                while (go>0 && mem[go].trie.find(c) == mem[go].trie.end()) {
+                    go = mem[go].suf;
+                }
+                if (mem[go].trie.find(c) != mem[go].trie.end()) {
+                    mem[v].suf = mem[go].trie[c];
+                }
+                else {
+                    mem[v].suf = 0;
+                }
+            }
+            q.push(v);
         }
     }
-    // do something
 }
+};
